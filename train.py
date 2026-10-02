@@ -59,12 +59,11 @@ def train():
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     model = DecisionEngineModel(args.model_name).to(device)
-    model = torch.compile(model)
     loss_fn = MultiTaskDecisionLoss(device)
 
     dataset = MultiTaskDecisionDataset(f"{BASE_DATA_DIR}/{config['train_file']}")
     collator = DecisionDataCollator(tokenizer, max_length=128)
-    loader = DataLoader(dataset, batch_size=config["batch_size"], shuffle=True, collate_fn=collator, num_workers=4, pin_memory=True,prefetch_factor=2)
+    loader = DataLoader(dataset, batch_size=config["batch_size"], shuffle=True, collate_fn=collator, num_workers=2, pin_memory=True)
 
     if config["use_8bit_adam"] and HAS_BNB and torch.cuda.is_available():
         optimizer = bnb.optim.AdamW8bit(model.parameters(), lr=args.lr, weight_decay=0.01)
