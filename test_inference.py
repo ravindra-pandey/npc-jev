@@ -103,7 +103,7 @@ def predict_score(tokenizer, model, device, context, question, rubric):
 
 if __name__ == "__main__":
     # Point this to whichever profile you ran (debug or colab)
-    CHECKPOINT_DIR = "./checkpoints/debug" 
+    CHECKPOINT_DIR = "checkpoints/colab" if os.path.exists("checkpoints/colab") else "checkpoints/debug" 
     
     tokenizer, model, device = load_engine(CHECKPOINT_DIR)
     
