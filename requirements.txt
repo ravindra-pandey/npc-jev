@@ -1,0 +1,46 @@
+# =====================================================================
+# 1. CORE ML BACKBONE & TRANSFORMERS
+# =====================================================================
+# ModernBERT requires transformers >= 4.48.0
+transformers>=4.48.0
+accelerate>=1.2.0
+tokenizers>=0.21.0
+huggingface_hub>=0.27.0
+safetensors>=0.5.0
+
+# =====================================================================
+# 2. DATA PROCESSING & HIGH-THROUGHPUT STREAMING
+# =====================================================================
+# For zero-overhead Parquet extraction and streaming Open-Jev splits
+datasets>=3.2.0
+pyarrow>=18.1.0
+polars>=1.17.0
+numpy>=1.26.0,<2.2.0
+
+# =====================================================================
+# 3. LOCAL GPU (GTX 1650 4GB) MEMORY OPTIMIZATION
+# =====================================================================
+# 8-bit AdamW optimizer cuts optimizer VRAM by ~75%
+bitsandbytes>=0.45.0
+
+# =====================================================================
+# 4. METRICS, CALIBRATION & EVALUATION
+# =====================================================================
+# For Noul ECE/Brier scores, Choice top-1 accuracy, and Score MAE
+scikit-learn>=1.5.0
+scipy>=1.13.0
+
+# =====================================================================
+# 5. SUB-MILLISECOND INFERENCE ENGINE EXPORT (ONNX RUNTIME)
+# =====================================================================
+# For exporting the trained 3-headed encoder and benchmarking sub-2ms passes
+onnx>=1.17.0
+onnxruntime>=1.20.0
+# Uncomment onnxruntime-gpu if you want GPU-accelerated ONNX inference:
+# onnxruntime-gpu>=1.20.0
+
+# =====================================================================
+# 6. LOGGING, MONITORING & UTILITIES
+# =====================================================================
+tqdm>=4.66.0
+python-dotenv>=1.0.0
