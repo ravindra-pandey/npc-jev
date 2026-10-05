@@ -26,15 +26,11 @@ class DecisionEngineModel(nn.Module):
     def forward(self, input_ids, attention_mask, task_types, candidate_splits):
         outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         
-        # Masked Mean Pooling
-        last_hidden = outputs.last_hidden_state
-        mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden.size()).float()
-        sum_embeddings = torch.sum(last_hidden * mask_expanded, 1)
-        sum_mask = torch.clamp(mask_expanded.sum(1), min=1e-9)
-        pooled = sum_embeddings / sum_mask
+        # ModernBERT CLS token representation (Index 0)
+        cls_rep = outputs.last_hidden_state[:, 0, :]
 
         # Split flattened batch back into per-sample chunks
-        split_sections = torch.split(pooled, candidate_splits, dim=0)
+        split_sections = torch.split(cls_rep, candidate_splits, dim=0)
         
         predictions = []
         for sub_pooled, task in zip(split_sections, task_types):
