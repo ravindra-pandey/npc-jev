@@ -39,20 +39,26 @@ class DecisionDataCollator:
 
             if kind == "choice":
                 for opt in options:
-                    flat_texts.append(f"Context: {context} | Query: {question} | Action: {opt}")
+                    flat_texts.append(
+                        f"[TASK: CHOICE] Context: {context} | Query: {question} | Candidate: {opt}"
+                    )
                 candidate_splits.append(len(options))
                 task_types.append("choice")
                 targets.append(int(target))
 
             elif kind == "score":
                 for opt in options:
-                    flat_texts.append(f"Context: {context} | Criterion: {question} | Tier: {opt}")
+                    flat_texts.append(
+                        f"[TASK: SCORE] Context: {context} | Criterion: {question} | Rubric: {opt}"
+                    )
                 candidate_splits.append(len(options))
                 task_types.append("score")
                 targets.append(int(target))
 
             elif kind == "noul":
-                flat_texts.append(f"Context: {context} | Verification: {question}")
+                flat_texts.append(
+                    f"[TASK: NOUL] Context: {context} | Assertion: {question}"
+                )
                 candidate_splits.append(1)
                 task_types.append("noul")
                 targets.append(float(target))

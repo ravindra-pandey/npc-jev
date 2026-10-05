@@ -5,7 +5,6 @@ from transformers import AutoTokenizer
 from model import DecisionEngineModel
 
 def load_engine(checkpoint_dir: str, model_name: str = "answerdotai/ModernBERT-base"):
-    """Loads the tokenizer and trained weights for inference."""
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Loading engine on {device} from {checkpoint_dir}...")
     
@@ -23,7 +22,7 @@ def load_engine(checkpoint_dir: str, model_name: str = "answerdotai/ModernBERT-b
     return tokenizer, model, device
 
 def predict_choice(tokenizer, model, device, context, question, options):
-    texts = [f"Context: {context} | Query: {question} | Action: {opt}" for opt in options]
+    texts = [f"[TASK: CHOICE] Context: {context} | Query: {question} | Candidate: {opt}" for opt in options]
     inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=128).to(device)
     
     with torch.no_grad():
@@ -34,7 +33,6 @@ def predict_choice(tokenizer, model, device, context, question, options):
             candidate_splits=[len(options)]
         )
     
-    # predictions is a list of tuples: [("choice", logits_tensor)]
     logits = predictions[0][1]
     probs = F.softmax(logits, dim=0).cpu().numpy()
     
@@ -49,7 +47,7 @@ def predict_choice(tokenizer, model, device, context, question, options):
     print(f"\n> SELECTED: {options[best_idx]}")
 
 def predict_noul(tokenizer, model, device, context, question):
-    text = f"Context: {context} | Verification: {question}"
+    text = f"[TASK: NOUL] Context: {context} | Assertion: {question}"
     inputs = tokenizer([text], return_tensors="pt", padding=True, truncation=True, max_length=128).to(device)
     
     with torch.no_grad():
@@ -71,7 +69,7 @@ def predict_noul(tokenizer, model, device, context, question):
     print(f"\n> RESULT: {'TRUE' if prob >= 0.5 else 'FALSE'} (Confidence: {max(prob, 1-prob)*100:.1f}%)")
 
 def predict_score(tokenizer, model, device, context, question, rubric):
-    texts = [f"Context: {context} | Criterion: {question} | Tier: {tier}" for tier in rubric]
+    texts = [f"[TASK: SCORE] Context: {context} | Criterion: {question} | Rubric: {tier}" for tier in rubric]
     inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=128).to(device)
     
     with torch.no_grad():
@@ -85,7 +83,6 @@ def predict_score(tokenizer, model, device, context, question, rubric):
     logits = predictions[0][1]
     probs = F.softmax(logits, dim=0)
     
-    # Calculate Expected Tier (Continuous float for game math)
     k_indices = torch.arange(len(probs), dtype=torch.float, device=device)
     expected_tier = torch.sum(probs * k_indices).item()
     probs = probs.cpu().numpy()
@@ -102,14 +99,9 @@ def predict_score(tokenizer, model, device, context, question, rubric):
     print(f"> EXPECTED CONTINUOUS SCORE: {expected_tier:.2f} / {len(rubric)-1}")
 
 if __name__ == "__main__":
-    # Point this to whichever profile you ran (debug or colab)
-    CHECKPOINT_DIR = "checkpoints/colab" if os.path.exists("checkpoints/colab") else "checkpoints/debug" 
-    
+    CHECKPOINT_DIR = "./checkpoints/colab" if os.path.exists("./checkpoints/colab") else "./checkpoints/debug"
     tokenizer, model, device = load_engine(CHECKPOINT_DIR)
     
-    # ---------------------------------------------------------
-    # TEST 1: Physical / Social Choice
-    # ---------------------------------------------------------
     predict_choice(
         tokenizer, model, device,
         context="The player is caught pickpocketing the merchant. Two heavily armed city guards immediately draw their swords and block the exit.",
@@ -122,18 +114,12 @@ if __name__ == "__main__":
         ]
     )
     
-    # ---------------------------------------------------------
-    # TEST 2: Boolean Verification
-    # ---------------------------------------------------------
     predict_noul(
         tokenizer, model, device,
         context="Inventory: [Health Potion, Iron Dagger, Lockpick]. Target Door State: Locked, requires Silver Key.",
         question="Does the player have the necessary item to open the door?"
     )
     
-    # ---------------------------------------------------------
-    # TEST 3: Ordinal Threat Scoring
-    # ---------------------------------------------------------
     predict_score(
         tokenizer, model, device,
         context="The goblin sees the player approaching with a drawn weapon. The goblin is at 10% health and has no allies nearby.",

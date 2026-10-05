@@ -26,10 +26,10 @@ class DecisionEngineModel(nn.Module):
     def forward(self, input_ids, attention_mask, task_types, candidate_splits):
         outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         
-        # ModernBERT CLS token representation (Index 0)
+        # ModernBERT standard classification pooling: extract [CLS] token (index 0)
         cls_rep = outputs.last_hidden_state[:, 0, :]
 
-        # Split flattened batch back into per-sample chunks
+        # Split flattened batch back into per-sample segments
         split_sections = torch.split(cls_rep, candidate_splits, dim=0)
         
         predictions = []
