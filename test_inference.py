@@ -16,14 +16,24 @@ def load_engine(checkpoint_dir: str, model_name: str = "answerdotai/ModernBERT-b
         model.load_state_dict(torch.load(weights_path, map_location=device))
         print("✓ Weights loaded successfully.")
     else:
-        print("⚠️ Warning: No trained weights found. Running with untrained base model.")
+        print("⚠️️ Warning: No trained weights found. Running with untrained base model.")
         
     model.eval()
     return tokenizer, model, device
 
 def predict_choice(tokenizer, model, device, context, question, options):
-    texts = [f"[TASK: CHOICE] Context: {context} | Query: {question} | Candidate: {opt}" for opt in options]
-    inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=128).to(device)
+    premise = f"[TASK: CHOICE] Context: {context} | Query: {question}"
+    texts_a = [premise] * len(options)
+    texts_b = [str(opt).strip() for opt in options]
+    
+    inputs = tokenizer(
+        text=texts_a,
+        text_pair=texts_b,
+        return_tensors="pt",
+        padding=True,
+        truncation="only_first",
+        max_length=256
+    ).to(device)
     
     with torch.no_grad():
         predictions = model(
@@ -47,8 +57,16 @@ def predict_choice(tokenizer, model, device, context, question, options):
     print(f"\n> SELECTED: {options[best_idx]}")
 
 def predict_noul(tokenizer, model, device, context, question):
-    text = f"[TASK: NOUL] Context: {context} | Assertion: {question}"
-    inputs = tokenizer([text], return_tensors="pt", padding=True, truncation=True, max_length=128).to(device)
+    premise = f"[TASK: NOUL] Context: {context}"
+    
+    inputs = tokenizer(
+        text=[premise],
+        text_pair=[str(question).strip()],
+        return_tensors="pt",
+        padding=True,
+        truncation="only_first",
+        max_length=256
+    ).to(device)
     
     with torch.no_grad():
         predictions = model(
@@ -69,8 +87,18 @@ def predict_noul(tokenizer, model, device, context, question):
     print(f"\n> RESULT: {'TRUE' if prob >= 0.5 else 'FALSE'} (Confidence: {max(prob, 1-prob)*100:.1f}%)")
 
 def predict_score(tokenizer, model, device, context, question, rubric):
-    texts = [f"[TASK: SCORE] Context: {context} | Criterion: {question} | Rubric: {tier}" for tier in rubric]
-    inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=128).to(device)
+    premise = f"[TASK: SCORE] Context: {context} | Criterion: {question}"
+    texts_a = [premise] * len(rubric)
+    texts_b = [str(tier).strip() for tier in rubric]
+    
+    inputs = tokenizer(
+        text=texts_a,
+        text_pair=texts_b,
+        return_tensors="pt",
+        padding=True,
+        truncation="only_first",
+        max_length=256
+    ).to(device)
     
     with torch.no_grad():
         predictions = model(

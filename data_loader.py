@@ -20,12 +20,13 @@ class MultiTaskDecisionDataset(Dataset):
 
 
 class DecisionDataCollator:
-    def __init__(self, tokenizer, max_length: int = 128):
+    def __init__(self, tokenizer, max_length: int = 256):
         self.tokenizer = tokenizer
         self.max_length = max_length
 
     def __call__(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
-        flat_texts = []
+        texts_a = []
+        texts_b = []
         task_types = []
         candidate_splits = []
         targets = []
@@ -38,35 +39,40 @@ class DecisionDataCollator:
             target = item.get("target")
 
             if kind == "choice":
+                # Premise is context + query conditioned by task
+                premise = f"[TASK: CHOICE] Context: {context} | Query: {question}"
                 for opt in options:
-                    flat_texts.append(
-                        f"[TASK: CHOICE] Context: {context} | Query: {question} | Candidate: {opt}"
-                    )
+                    texts_a.append(premise)
+                    texts_b.append(str(opt).strip())
                 candidate_splits.append(len(options))
                 task_types.append("choice")
                 targets.append(int(target))
 
             elif kind == "score":
+                # Premise is context + criterion conditioned by task
+                premise = f"[TASK: SCORE] Context: {context} | Criterion: {question}"
                 for opt in options:
-                    flat_texts.append(
-                        f"[TASK: SCORE] Context: {context} | Criterion: {question} | Rubric: {opt}"
-                    )
+                    texts_a.append(premise)
+                    texts_b.append(str(opt).strip())
                 candidate_splits.append(len(options))
                 task_types.append("score")
                 targets.append(int(target))
 
             elif kind == "noul":
-                flat_texts.append(
-                    f"[TASK: NOUL] Context: {context} | Assertion: {question}"
-                )
+                # Premise is context, target is the assertion to verify
+                premise = f"[TASK: NOUL] Context: {context}"
+                texts_a.append(premise)
+                texts_b.append(str(question).strip())
                 candidate_splits.append(1)
                 task_types.append("noul")
                 targets.append(float(target))
 
+        # Native pair tokenization with directional truncation
         tokenized = self.tokenizer(
-            flat_texts,
+            text=texts_a,
+            text_pair=texts_b,
             padding=True,
-            truncation=True,
+            truncation="only_first",
             max_length=self.max_length,
             return_tensors="pt"
         )
